@@ -1,0 +1,278 @@
+{
+  "name": "Trump 100% Tariff Sentiment Analysis",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        160
+      ],
+      "id": "fdec5f2a-a582-408d-9b4f-0bb5d754809d",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "==You are an expert sentiment analysis model. Classify the following text as either 'positive', 'negative', or 'neutral'. Be careful of sarcasm and double negatives. Respond with ONLY one word, with no extra characters or explanations.\n\nText: {{ $json.text }}\n\nSentiment:",
+        "batching": {
+          "batchSize": 4,
+          "delayBetweenBatches": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        112,
+        160
+      ],
+      "id": "9f697f32-8a24-40f4-9421-7360d4dfd51e",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "=llama3:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        112,
+        320
+      ],
+      "id": "f3487c7b-c0a3-4860-bd24-68a26afea951",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "YOUR_API_KEY",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.twitterapi.io/twitter/tweet/advanced_search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "trump semiconductor tariffs"
+            },
+            {
+              "name": "queryType",
+              "value": "Top"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "=https://api.twitterapi.io/twitter/tweet/advanced_search?cursor={{ $response.body.next_cursor }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ $response.body.has_next_page == false }}",
+              "limitPagesFetched": true,
+              "maxRequests": 1,
+              "requestInterval": 6000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        160
+      ],
+      "id": "501d8da5-3834-4d0d-8634-9413ea40f493",
+      "name": "Twitter Data Pulling",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_API_KEY",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const totalCount = items.length;\nlet positiveCount = 0;\nlet negativeCount = 0;\nlet neutralCount = 0;\n\nfor (const item of items) {\n  const sentiment = item.json.sentiment;\n  if (sentiment === 'positive') {\n    positiveCount++;\n  } else if (sentiment === 'negative') {\n    negativeCount++;\n  } else if (sentiment === 'neutral') {\n    neutralCount++;\n  }\n}\n\nconst positivePercentage = (positiveCount / totalCount) * 100;\nconst negativePercentage = (negativeCount / totalCount) * 100;\nconst neutralPercentage = (neutralCount / totalCount) * 100;\n\nreturn [\n  {\n    json: {\n      totalCount: totalCount,\n      positiveCount: positiveCount,\n      negativeCount: negativeCount,\n      neutralCount: neutralCount,\n      positivePercentage: positivePercentage,\n      negativePercentage: negativePercentage,\n      neutralPercentage: neutralPercentage,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        160
+      ],
+      "id": "eada30f0-3f58-470e-b1a7-cc9fdfa85ae5",
+      "name": "Data Aggregation"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (let i = 0; i < items.length; i++) {\n  const sentimentResult = items[i]?.json?.text;\n\n  if (sentimentResult) {\n    // Ambil hanya kata pertama dari output LLM dan pastikan dalam huruf kecil\n    let sentiment = sentimentResult.split(' ')[0].trim().toLowerCase();\n\n    // Bersihkan karakter non-alfabet\n    sentiment = sentiment.replace(/[^a-z]/g, '');\n\n    items[i].json.sentiment = sentiment;\n  }\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        160
+      ],
+      "id": "7cd2a975-707d-4809-92c9-6425f6981c78",
+      "name": "Formatting"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://quickchart.io/chart",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chart\": {\n    \"type\": \"doughnut\",\n    \"data\": {\n      \"labels\": [\"Positive\", \"Negative\", \"Neutral\"],\n      \"datasets\": [{\n        \"data\": [\n          {{ $json.positivePercentage }},\n          {{ $json.negativePercentage }},\n          {{ $json.neutralPercentage }}\n        ],\n        \"backgroundColor\": [\"#4CAF50\", \"#F44336\", \"#FFC107\"]\n      }]\n    },\n    \"options\": {\n      \"plugins\": {\n        \"title\": {\n          \"display\": true,\n          \"text\": \"Sentiment Analysis Percentage\",\n          \"font\": {\n            \"size\": 18\n          }\n        }\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        256
+      ],
+      "id": "1bce04b2-754d-47fc-a800-b9b8f3c276ed",
+      "name": "Sentiment Distribution"
+    },
+    {
+      "parameters": {
+        "html": "<style>\n  .card {\n    border: 1px solid #ccc;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);\n    text-align: center;\n    font-family: sans-serif;\n    background-color: #f9f9f9;\n  }\n  .count {\n    font-size: 3rem;\n    font-weight: bold;\n    color: #333;\n  }\n  .label {\n    font-size: 1rem;\n    color: #666;\n  }\n</style>\n\n<div class=\"card\">\n  <div class=\"count\">{{ $json.totalCount }}</div>\n  <div class=\"label\">Total Tweets</div>\n</div>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        80
+      ],
+      "id": "44db4c39-b222-46ba-969c-31715759bf3c",
+      "name": "Total Tweets1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const transformedData = [];\n\nconst rawData = items[0]?.json;\n\nif (rawData?.tweets && Array.isArray(rawData.tweets)) {\n  const tweets = rawData.tweets;\n\n  for (const tweet of tweets) {\n    const id = tweet?.id;\n    const url = tweet?.url;\n    const text = tweet?.text;\n    const username = tweet?.author?.userName;\n\n    if (id && url && text && username) {\n      transformedData.push({\n        \"id\": id,\n        \"username\": username,\n        \"url\": url,\n        \"text\": text,\n      });\n    }\n  }\n}\n\nreturn transformedData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        160
+      ],
+      "id": "f367d886-de4f-47cf-b091-181693b60788",
+      "name": "Cleaning",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Twitter Data Pulling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twitter Data Pulling": {
+      "main": [
+        [
+          {
+            "node": "Cleaning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Aggregation": {
+      "main": [
+        [
+          {
+            "node": "Sentiment Distribution",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Total Tweets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatting": {
+      "main": [
+        [
+          {
+            "node": "Data Aggregation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Total Tweets1": {
+      "main": [
+        []
+      ]
+    },
+    "Sentiment Distribution": {
+      "main": [
+        []
+      ]
+    },
+    "Cleaning": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "20ca931c-b432-4780-a52d-ba36deadc992",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a1f1192ad0230c489722cc784354d7bb5d8ab68eb8852f667ac4ef4e36f256ef"
+  },
+  "id": "sZ47Yy6o4hZgirX8",
+  "tags": []
+}
