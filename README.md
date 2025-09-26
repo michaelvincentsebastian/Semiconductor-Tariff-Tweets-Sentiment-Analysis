@@ -1,4 +1,4 @@
-# Advanced Market Event Sentiment Analysis Pipeline (n8n + Ollama)
+# 🎭 Market Event Sentiment Analysis Pipeline (n8n + Ollama)
 
 This n8n workflow automates **high-volume sentiment analysis** on social media data related to major market/policy events, providing real-time sentiment distribution and statistical outputs.
 
