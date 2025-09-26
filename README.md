@@ -1,95 +1,43 @@
-# Trump 100% Tariff Sentiment Analysis – n8n Workflow
+# Advanced Market Event Sentiment Analysis Pipeline (n8n + Ollama)
 
-This n8n workflow automates **sentiment analysis on Twitter data** related to "Trump semiconductor tariffs" and generates aggregated statistics with visual outputs.  
-
----
-
-## 🔄 Workflow Overview
-
-1. **Trigger**  
-   - Starts manually using the `Manual Trigger` node.
-
-2. **Twitter Data Pulling**  
-   - Fetches tweets from a Twitter API (`twitterapi.io`) using the query:  
-     ```
-     trump semiconductor tariffs
-     ```
-   - Supports pagination (fetches limited number of pages).
-
-3. **Cleaning**  
-   - Extracts only essential tweet fields:
-     - Tweet ID  
-     - URL  
-     - Text  
-     - Username  
-
-4. **Sentiment Classification**  
-   - Uses an **LLM (via Ollama + LangChain)** to classify each tweet as:
-     - `positive`
-     - `negative`
-     - `neutral`  
-   - Prompt is designed to be **strict and concise** (only one-word outputs).
-
-5. **Formatting**  
-   - Ensures clean sentiment outputs:
-     - Normalizes to lowercase.  
-     - Removes any extra characters (handles sarcasm, typos, etc.).
-
-6. **Data Aggregation**  
-   - Counts and calculates percentages of each sentiment category:
-     - Total tweets  
-     - Positive %  
-     - Negative %  
-     - Neutral %  
-
-7. **Visualization & Output**  
-   - **QuickChart Doughnut Chart**: Creates a distribution chart of sentiment percentages.  
-   - **HTML Card Widget**: Displays total tweet count in a styled card format.  
+This n8n workflow automates **high-volume sentiment analysis** on social media data related to major market/policy events, providing real-time sentiment distribution and statistical outputs.
 
 ---
 
-## 📊 Example Output
+## 🚀 Technical Workflow Overview (End-to-End Automation)
 
-- **Doughnut Chart**:  
-  Visual breakdown of sentiment percentages (`positive`, `negative`, `neutral`).  
+1. **Twitter Data Pulling**
+    - Fetches relevant tweets from a social media API (`twitterapi.io`) using a targeted query related to the specific market event.
+    - Supports pagination for high-volume data ingestion.
 
-- **HTML Card**:  
-  Shows total tweets analyzed in a clean card UI.  
+2. **Cleaning & Pre-processing**
+    - Extracts essential data fields (ID, URL, Text, Username) and prepares the content for LLM processing.
 
----
+3. **Sentiment Classification (AI Core)**
+    - Uses a **self-contained LLM (Llama3 via Ollama + LangChain)** to classify each text as: `positive`, `negative`, or `neutral`.
+    - **Achievement:** Demonstrates a **cost-effective, local AI architecture** suitable for private/high-volume data processing.
 
-## ⚙️ Requirements
+4. **Data Aggregation & Formatting**
+    - Normalizes outputs and calculates key sentiment metrics: Total tweets, Positive %, Negative %, and Neutral %.
 
-- **n8n** (self-hosted or cloud)  
-- **Ollama** running locally with `llama3:latest` model installed  
-- **API Access**:
-  - Twitter API proxy (`twitterapi.io`)  
-  - QuickChart API  
-
----
-
-## 🔑 Credentials Needed
-
-- **Twitter API Key** (HTTP Header Auth)  
-- **Ollama API** (Local service key)  
+5. **Visualization & Reporting**
+    - **QuickChart Integration**: Generates a live Doughnut Chart showing real-time sentiment distribution.
+    - **HTML Card Widget**: Displays total analyzed volume in a clean UI.
 
 ---
 
-## 🚀 Use Case
+## 📈 High-Value Business Use Cases
 
-This workflow can be adapted for:  
-- Tracking sentiment on political/economic news.  
-- Brand or product reputation monitoring on Twitter.  
-- Social listening dashboards with live charts.  
+This workflow can be adapted for essential business functions:
+- **Brand/Product Reputation Monitoring:** Tracking public response to new launches or negative PR incidents.
+- **Early Market Risk Signal:** Providing an *early warning signal* for financial or operational risk by monitoring large-scale public sentiment shifts.
+- **Competitor Intelligence:** Analyzing public reaction to competitor announcements.
 
 ---
 
-## 📝 Notes
+## ⚙️ Requirements & Scalability
 
-- Currently configured for **manual runs**.  
-- Can be extended with:
-  - Scheduled triggers (cron).  
-  - More advanced NLP (entity detection, sarcasm handling).  
-  - Multi-source data (news, forums, etc.).  
+- **Tools:** n8n, Ollama (`llama3:latest`), Twitter API proxy, QuickChart API.
+- **Scalability:** Built for continuous operation. Easily extensible with **Scheduled CRON triggers** (for real-time monitoring) and **multi-source data ingestion** (news APIs, forums, etc.).
 
 ---
